@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
+import { supabase } from './supabaseClient';
+import Auth from './components/Auth';
 
 // Custom Alert component
 const Alert = ({ children }) => (
@@ -10,6 +12,7 @@ const Alert = ({ children }) => (
 );
 
 function App() {
+  const [user, setUser] = useState(null);
   const [code, setCode] = useState('// Your C++ code here');
   const [output, setOutput] = useState('');
   const [currentQuestionId, setCurrentQuestionId] = useState(1);
@@ -20,20 +23,30 @@ function App() {
   const [conversationHistory, setConversationHistory] = useState('');
 
   const questions = [
-    { 
-      id: 1, 
-      text: 'Write a C++ function to calculate the factorial of a number.', 
+    {
+      id: 1,
+      text: 'Write a C++ function to calculate the factorial of a number.',
       expected: 'Factorial of 5 is 120'
     },
-    { 
-      id: 2, 
-      text: 'Implement a C++ function to check if a string is a palindrome.', 
+    {
+      id: 2,
+      text: 'Implement a C++ function to check if a string is a palindrome.',
       expected: '"racecar" is a palindrome\n"hello" is not a palindrome'
     },
   ];
 
   useEffect(() => {
     loadQuestion(currentQuestionId);
+    
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, [currentQuestionId]);
 
   const loadQuestion = (id) => {
@@ -57,7 +70,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           code,
           problem_statement: question,
           expected_output: expectedOutput,
@@ -87,7 +100,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           code,
           problem_statement: question,
           expected_output: expectedOutput,
@@ -108,55 +121,74 @@ function App() {
     }
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-100">
-      <header className="bg-white shadow-md p-4">
+      <header className="bg-white shadow-md p-4 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">get cracked and high using ai at DSA</h1>
+        {user && (
+          <button
+            onClick={handleSignOut}
+            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 shadow"
+          >
+            Sign Out
+          </button>
+        )}
       </header>
       <main className="flex-grow flex overflow-hidden">
-        <div className="w-1/2 flex flex-col p-4">
-          <div className="mb-4 p-4 bg-white rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-2 text-gray-700">Question {currentQuestionId}</h2>
-            <p className="text-gray-600">{question}</p>
-            <p className="text-gray-600 mt-2">Expected output: {expectedOutput}</p>
+        {user ? (
+          <>
+            <div className="w-1/2 flex flex-col p-4">
+              <div className="mb-4 p-4 bg-white rounded-lg shadow">
+                <h2 className="text-xl font-semibold mb-2 text-gray-700">Question {currentQuestionId}</h2>
+                <p className="text-gray-600">{question}</p>
+                <p className="text-gray-600 mt-2">Expected output: {expectedOutput}</p>
+              </div>
+              <div className="flex-grow overflow-hidden">
+                <CodeMirror
+                  value={code}
+                  height="100%"
+                  extensions={[cpp()]}
+                  onChange={(value) => setCode(value)}
+                  className="border border-gray-300 rounded-lg shadow h-full"
+                />
+              </div>
+            </div>
+            <div className="w-1/2 flex flex-col p-4">
+              <div className="flex-grow overflow-auto bg-white p-4 rounded-lg shadow mb-4">
+                <h3 className="font-semibold mb-2">Output:</h3>
+                <pre className="text-sm text-gray-700 whitespace-pre-wrap">{output}</pre>
+                {hint && <Alert>{hint}</Alert>}
+              </div>
+              <div className="flex gap-4">
+                <button
+                  onClick={runCode}
+                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 shadow"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Running...' : 'Submit'}
+                </button>
+                <button
+                  onClick={requestHint}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow"
+                  disabled={isLoading}
+                >
+                  Hint
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="w-full flex justify-center items-center">
+            <Auth />
           </div>
-          <div className="flex-grow overflow-hidden">
-            <CodeMirror
-              value={code}
-              height="100%"
-              extensions={[cpp()]}
-              onChange={(value) => setCode(value)}
-              className="border border-gray-300 rounded-lg shadow h-full"
-            />
-          </div>
-        </div>
-        <div className="w-1/2 flex flex-col p-4">
-          <div className="flex-grow overflow-auto bg-white p-4 rounded-lg shadow mb-4">
-            <h3 className="font-semibold mb-2">Output:</h3>
-            <pre className="text-sm text-gray-700 whitespace-pre-wrap">{output}</pre>
-            {hint && <Alert>{hint}</Alert>}
-          </div>
-          <div className="flex gap-4">
-            <button 
-              onClick={runCode} 
-              className="flex-1 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 shadow"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Running...' : 'Submit'}
-            </button>
-            <button 
-              onClick={requestHint}
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow"
-              disabled={isLoading}
-            >
-              Hint
-            </button>
-          </div>
-        </div>
+        )}
       </main>
     </div>
   );
 }
 
 export default App;
-

@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.2",
+    "@supabase/supabase-js": "^2.44.2",
     "@uiw/react-codemirror": "^4.22.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
