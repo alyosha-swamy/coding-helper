@@ -1,15 +1,35 @@
 import React, { useState, useEffect } from 'react';
+import CodeMirror from '@uiw/react-codemirror';
+import { cpp } from '@codemirror/lang-cpp';
+
+// Custom Alert component
+const Alert = ({ children }) => (
+  <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert">
+    {children}
+  </div>
+);
 
 function App() {
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState('// Your C++ code here');
   const [output, setOutput] = useState('');
   const [currentQuestionId, setCurrentQuestionId] = useState(1);
   const [question, setQuestion] = useState('');
+  const [expectedOutput, setExpectedOutput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [hint, setHint] = useState('');
+  const [conversationHistory, setConversationHistory] = useState('');
 
   const questions = [
-    { id: 1, text: 'Write a C++ function to calculate the factorial of a number.' },
-    { id: 2, text: 'Implement a C++ function to check if a string is a palindrome.' },
+    { 
+      id: 1, 
+      text: 'Write a C++ function to calculate the factorial of a number.', 
+      expected: 'Factorial of 5 is 120'
+    },
+    { 
+      id: 2, 
+      text: 'Implement a C++ function to check if a string is a palindrome.', 
+      expected: '"racecar" is a palindrome\n"hello" is not a palindrome'
+    },
   ];
 
   useEffect(() => {
@@ -20,8 +40,11 @@ function App() {
     const selectedQuestion = questions.find(q => q.id === id);
     if (selectedQuestion) {
       setQuestion(selectedQuestion.text);
+      setExpectedOutput(selectedQuestion.expected);
       setCode('// Your C++ code here');
       setOutput('');
+      setHint('');
+      setConversationHistory('');
     }
   };
 
@@ -34,13 +57,21 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ 
+          code,
+          problem_statement: question,
+          expected_output: expectedOutput,
+          actual_output: output,
+          conversation_history: conversationHistory
+        }),
       });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.detail || 'An error occurred');
       }
       setOutput(data.output || 'No output');
+      setHint(data.response);
+      setConversationHistory(prev => `${prev}Tutor: ${data.response}\nStudent: Submitted code\n`);
     } catch (error) {
       setOutput(`Error: ${error.message}`);
     } finally {
@@ -48,53 +79,84 @@ function App() {
     }
   };
 
-  const runTests = async () => {
-    setOutput('Running tests...');
+  const requestHint = async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/run-tests', {
+      const response = await fetch('http://localhost:8000/run-code', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ questionId: currentQuestionId, code }),
+        body: JSON.stringify({ 
+          code,
+          problem_statement: question,
+          expected_output: expectedOutput,
+          actual_output: output,
+          conversation_history: conversationHistory
+        }),
       });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
       const data = await response.json();
-      setOutput(`Test results: ${data.result}`);
+      if (!response.ok) {
+        throw new Error(data.detail || 'An error occurred');
+      }
+      setHint(data.response);
+      setConversationHistory(prev => `${prev}Tutor: ${data.response}\nStudent: Requested hint\n`);
     } catch (error) {
-      setOutput(`Error: ${error.message}. Make sure the backend server is running at http://localhost:8000`);
+      setHint(`Error: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-return (
-    <div className="min-h-screen bg-white p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-black">C++ Coding Challenges</h1>
-        <div className="mb-6 p-4 border-2 border-gray-300">
-          <h2 className="text-xl font-semibold mb-2 text-black">Question {currentQuestionId}</h2>
-          <p className="text-black">{question}</p>
+  return (
+    <div className="flex flex-col h-screen bg-gray-100">
+      <header className="bg-white shadow-md p-4">
+        <h1 className="text-2xl font-bold text-gray-800">get cracked and high using ai at DSA</h1>
+      </header>
+      <main className="flex-grow flex overflow-hidden">
+        <div className="w-1/2 flex flex-col p-4">
+          <div className="mb-4 p-4 bg-white rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-2 text-gray-700">Question {currentQuestionId}</h2>
+            <p className="text-gray-600">{question}</p>
+            <p className="text-gray-600 mt-2">Expected output: {expectedOutput}</p>
+          </div>
+          <div className="flex-grow overflow-hidden">
+            <CodeMirror
+              value={code}
+              height="100%"
+              extensions={[cpp()]}
+              onChange={(value) => setCode(value)}
+              className="border border-gray-300 rounded-lg shadow h-full"
+            />
+          </div>
         </div>
-        <div className="mb-6">
-          <textarea
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            className="w-full h-64 p-4 border-2 border-gray-300 font-mono text-sm text-black resize-none"
-          />
+        <div className="w-1/2 flex flex-col p-4">
+          <div className="flex-grow overflow-auto bg-white p-4 rounded-lg shadow mb-4">
+            <h3 className="font-semibold mb-2">Output:</h3>
+            <pre className="text-sm text-gray-700 whitespace-pre-wrap">{output}</pre>
+            {hint && <Alert>{hint}</Alert>}
+          </div>
+          <div className="flex gap-4">
+            <button 
+              onClick={runCode} 
+              className="flex-1 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 shadow"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Running...' : 'Submit'}
+            </button>
+            <button 
+              onClick={requestHint}
+              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow"
+              disabled={isLoading}
+            >
+              Hint
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-4 mb-6">
-          <button onClick={runCode} className="px-4 py-2 border-2 border-green-300 text-black">Run Code</button>
-          <button onClick={runTests} className="px-4 py-2 border-2 border-blue-300 text-black">Run Tests</button>
-          <button onClick={() => setCurrentQuestionId(prev => Math.max(1, prev - 1))} className="px-4 py-2 border-2 border-yellow-300 text-black">Previous Question</button>
-          <button onClick={() => setCurrentQuestionId(prev => Math.min(questions.length, prev + 1))} className="px-4 py-2 border-2 border-red-300 text-black">Next Question</button>
-        </div>
-        <pre className="p-4 border-2 border-gray-300 text-black overflow-x-auto">{output}</pre>
-      </div>
+      </main>
     </div>
   );
 }
+
 export default App;
-
-
 
