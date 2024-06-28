@@ -5,11 +5,11 @@ function App() {
   const [output, setOutput] = useState('');
   const [currentQuestionId, setCurrentQuestionId] = useState(1);
   const [question, setQuestion] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const questions = [
     { id: 1, text: 'Write a C++ function to calculate the factorial of a number.' },
     { id: 2, text: 'Implement a C++ function to check if a string is a palindrome.' },
-    // Add more questions as needed
   ];
 
   useEffect(() => {
@@ -26,6 +26,7 @@ function App() {
   };
 
   const runCode = async () => {
+    setIsLoading(true);
     setOutput('Running code...');
     try {
       const response = await fetch('http://localhost:8000/run-code', {
@@ -35,13 +36,15 @@ function App() {
         },
         body: JSON.stringify({ code }),
       });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
       const data = await response.json();
-      setOutput(data.output || data.error);
+      if (!response.ok) {
+        throw new Error(data.detail || 'An error occurred');
+      }
+      setOutput(data.output || 'No output');
     } catch (error) {
-      setOutput(`Error: ${error.message}. Make sure the backend server is running at http://localhost:8000`);
+      setOutput(`Error: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -65,7 +68,7 @@ function App() {
     }
   };
 
-  return (
+return (
     <div className="min-h-screen bg-white p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 text-black">C++ Coding Challenges</h1>
@@ -91,6 +94,7 @@ function App() {
     </div>
   );
 }
-
 export default App;
+
+
 
