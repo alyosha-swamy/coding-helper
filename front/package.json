@@ -6,9 +6,13 @@
     "@codemirror/lang-cpp": "^6.0.2",
     "@supabase/supabase-js": "^2.44.2",
     "@uiw/react-codemirror": "^4.22.2",
+    "papaparse": "^5.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
     "react-scripts": "5.0.1",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.0",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

@@ -3,8 +3,11 @@ import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
 import { supabase } from './supabaseClient';
 import Auth from './components/Auth';
+import Papa from 'papaparse';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize'; // Import rehype-sanitize
 
-// Custom Alert component
 const Alert = ({ children }) => (
   <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert">
     {children}
@@ -15,29 +18,30 @@ function App() {
   const [user, setUser] = useState(null);
   const [code, setCode] = useState('// Your C++ code here');
   const [output, setOutput] = useState('');
-  const [currentQuestionId, setCurrentQuestionId] = useState(1);
-  const [question, setQuestion] = useState('');
-  const [expectedOutput, setExpectedOutput] = useState('');
+  const [currentProblem, setCurrentProblem] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hint, setHint] = useState('');
   const [conversationHistory, setConversationHistory] = useState('');
-
-  const questions = [
-    {
-      id: 1,
-      text: 'Write a C++ function to calculate the factorial of a number.',
-      expected: 'Factorial of 5 is 120'
-    },
-    {
-      id: 2,
-      text: 'Implement a C++ function to check if a string is a palindrome.',
-      expected: '"racecar" is a palindrome\n"hello" is not a palindrome'
-    },
-  ];
+  const [problems, setProblems] = useState([]);
 
   useEffect(() => {
-    loadQuestion(currentQuestionId);
-    
+    const fetchProblems = async () => {
+      try {
+        const response = await fetch('/problems.csv');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const csvString = await response.text();
+        const results = Papa.parse(csvString, { header: true });
+        setProblems(results.data);
+        loadRandomProblem(results.data);
+      } catch (error) {
+        console.error('Error loading problems:', error);
+      }
+    };
+
+    fetchProblems();
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
@@ -47,13 +51,13 @@ function App() {
     });
 
     return () => subscription.unsubscribe();
-  }, [currentQuestionId]);
+  }, []);
 
-  const loadQuestion = (id) => {
-    const selectedQuestion = questions.find(q => q.id === id);
-    if (selectedQuestion) {
-      setQuestion(selectedQuestion.text);
-      setExpectedOutput(selectedQuestion.expected);
+  const loadRandomProblem = (problems) => {
+    if (problems.length > 0) {
+      const randomIndex = Math.floor(Math.random() * problems.length);
+      const problem = problems[randomIndex];
+      setCurrentProblem(problem);
       setCode('// Your C++ code here');
       setOutput('');
       setHint('');
@@ -72,10 +76,11 @@ function App() {
         },
         body: JSON.stringify({
           code,
-          problem_statement: question,
-          expected_output: expectedOutput,
+          problem_statement: currentProblem.content,
+          expected_output: "Expected output not provided",
           actual_output: output,
-          conversation_history: conversationHistory
+          conversation_history: conversationHistory,
+          solution: currentProblem['c++']
         }),
       });
       const data = await response.json();
@@ -102,10 +107,11 @@ function App() {
         },
         body: JSON.stringify({
           code,
-          problem_statement: question,
-          expected_output: expectedOutput,
+          problem_statement: currentProblem.content,
+          expected_output: "Expected output not provided",
           actual_output: output,
-          conversation_history: conversationHistory
+          conversation_history: conversationHistory,
+          solution: currentProblem['c++']
         }),
       });
       const data = await response.json();
@@ -128,7 +134,7 @@ function App() {
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       <header className="bg-white shadow-md p-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">get cracked and high using ai at DSA</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Get Cracked and High Using AI at DSA</h1>
         {user && (
           <button
             onClick={handleSignOut}
@@ -142,11 +148,15 @@ function App() {
         {user ? (
           <>
             <div className="w-1/2 flex flex-col p-4">
-              <div className="mb-4 p-4 bg-white rounded-lg shadow">
-                <h2 className="text-xl font-semibold mb-2 text-gray-700">Question {currentQuestionId}</h2>
-                <p className="text-gray-600">{question}</p>
-                <p className="text-gray-600 mt-2">Expected output: {expectedOutput}</p>
-              </div>
+              {currentProblem && (
+                <div className="mb-4 p-4 bg-white rounded-lg shadow">
+                  <h2 className="text-xl font-semibold mb-2 text-gray-700">{currentProblem.title}</h2>
+                  <ReactMarkdown className="text-gray-600" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+                    {currentProblem.content}
+                  </ReactMarkdown>
+                  <p className="text-gray-500 mt-2">Difficulty: {currentProblem.difficulty}</p>
+                </div>
+              )}
               <div className="flex-grow overflow-hidden">
                 <CodeMirror
                   value={code}
@@ -160,7 +170,9 @@ function App() {
             <div className="w-1/2 flex flex-col p-4">
               <div className="flex-grow overflow-auto bg-white p-4 rounded-lg shadow mb-4">
                 <h3 className="font-semibold mb-2">Output:</h3>
-                <pre className="text-sm text-gray-700 whitespace-pre-wrap">{output}</pre>
+                <ReactMarkdown className="text-sm text-gray-700 whitespace-pre-wrap" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+                  {output}
+                </ReactMarkdown>
                 {hint && <Alert>{hint}</Alert>}
               </div>
               <div className="flex gap-4">
@@ -178,6 +190,12 @@ function App() {
                 >
                   Hint
                 </button>
+                <button
+                  onClick={() => loadRandomProblem(problems)}
+                  className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 shadow"
+                >
+                  New Problem
+                </button>
               </div>
             </div>
           </>
@@ -192,3 +210,4 @@ function App() {
 }
 
 export default App;
+
