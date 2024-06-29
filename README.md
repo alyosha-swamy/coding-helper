@@ -13,8 +13,9 @@ bun start
 
 ```
 cd coding-helper
+yv venv
 source .venv/bin/activate
-pip install fastapi uvicorn
+pip install fastapi uvicorn dspy-ai
 python3 app.py
 ```
 
