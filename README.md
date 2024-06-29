@@ -22,7 +22,7 @@ python3 app.py
 
 ## todo
 
-- [ ] cleanup backend
+- [x] cleanup backend
 - [ ] auth (shit got hands)
 - [ ] make tests
 - [ ] better ui, is going to be minimal only just do need to nail it well

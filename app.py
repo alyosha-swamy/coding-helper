@@ -65,7 +65,7 @@ def generate_socratic_response(problem_statement, current_code, expected_output,
     )
     return result.response
 
-def compile_code(file_path):
+def compile_code(cpp_file_path):
     compile_process = subprocess.run(['g++', '-std=c++20', file_path, '-o', 'output'], 
                                      capture_output=True, text=True, timeout=10)
     if compile_process.returncode != 0:
