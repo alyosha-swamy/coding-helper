@@ -1,23 +1,7 @@
 you just read the question, read the language and then start coding it prompts
 
-### how to run the frontend
-
-```
-cd front
-bun i 
-bun start
-```
-
-
-### how to run backend
-
-```
-cd coding-helper
-yv venv
-source .venv/bin/activate
-pip install fastapi uvicorn dspy-ai
-python3 app.py
-```
+how to run?
+`/start`
 
 
 ## todo

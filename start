@@ -1,0 +1,26 @@
+#!/bin/bash
+# Function to run the frontend
+run_frontend() {
+  cd front
+  bun i
+  bun start
+}
+
+# Function to run the backend
+run_backend() {
+  cd coding-helper
+  python3 -m venv .venv
+  source .venv/bin/activate
+  pip install -r requirements.txt
+  python3 app.py
+}
+
+# Main script execution
+echo "Starting frontend..."
+run_frontend &
+
+echo "Starting backend..."
+run_backend &
+
+# Wait for all background processes to finish
+wait
