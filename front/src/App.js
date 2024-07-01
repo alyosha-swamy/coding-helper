@@ -23,11 +23,8 @@ function App() {
   const [hint, setHint] = useState('');
   const [conversationHistory, setConversationHistory] = useState('');
   const [problems, setProblems] = useState([]);
-<<<<<<< HEAD
   const [darkMode, setDarkMode] = useState(false);
-=======
   const [leftPanelWidth, setLeftPanelWidth] = useState(50); // Initial width percentage
->>>>>>> cd0ae6656c195415faa501dc5e31a8aeaec17adc
 
   useEffect(() => {
     const fetchProblems = async () => {
@@ -62,7 +59,6 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-<<<<<<< HEAD
   useEffect(() => {
     // Apply dark mode class to body
     document.body.classList.toggle('dark', darkMode);
@@ -79,7 +75,6 @@ function App() {
     if (problemsData.length > 0) {
       const randomIndex = Math.floor(Math.random() * problemsData.length);
       const problem = problemsData[randomIndex];
->>>>>>> cd0ae6656c195415faa501dc5e31a8aeaec17adc
       setCurrentProblem(problem);
       setCode('// Your C++ code here');
       setOutput('');
@@ -154,11 +149,9 @@ function App() {
     await supabase.auth.signOut();
   };
 
-<<<<<<< HEAD
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
-=======
   const handleMouseDown = useCallback((e) => {
     e.preventDefault();
     document.addEventListener('mousemove', handleMouseMove);
@@ -181,7 +174,6 @@ function App() {
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
->>>>>>> cd0ae6656c195415faa501dc5e31a8aeaec17adc
 
   return (
     <div className={`flex flex-col h-screen ${darkMode ? 'dark' : ''}`}>
@@ -228,12 +220,10 @@ function App() {
                 />
               </div>
             </div>
-<<<<<<< HEAD
             <div className="w-1/2 flex flex-col p-4">
               <div className="flex-grow overflow-auto bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4">
                 <h3 className="font-semibold mb-2 text-gray-800 dark:text-white">Output:</h3>
                 <ReactMarkdown className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-=======
             <div
               className="w-1 bg-gray-300 cursor-col-resize"
               onMouseDown={handleMouseDown}
@@ -242,7 +232,6 @@ function App() {
               <div className="flex-grow overflow-auto bg-white p-4 rounded-lg shadow mb-4">
                 <h3 className="font-semibold mb-2">Output:</h3>
                 <ReactMarkdown className="text-sm text-gray-700 whitespace-pre-wrap" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
->>>>>>> cd0ae6656c195415faa501dc5e31a8aeaec17adc
                   {output}
                 </ReactMarkdown>
                 {hint && <Alert>{hint}</Alert>}
