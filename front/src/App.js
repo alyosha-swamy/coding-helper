@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
 import { supabase } from './supabaseClient';
@@ -23,7 +23,11 @@ function App() {
   const [hint, setHint] = useState('');
   const [conversationHistory, setConversationHistory] = useState('');
   const [problems, setProblems] = useState([]);
+<<<<<<< HEAD
   const [darkMode, setDarkMode] = useState(false);
+=======
+  const [leftPanelWidth, setLeftPanelWidth] = useState(50); // Initial width percentage
+>>>>>>> cd0ae6656c195415faa501dc5e31a8aeaec17adc
 
   useEffect(() => {
     const fetchProblems = async () => {
@@ -58,6 +62,7 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+<<<<<<< HEAD
   useEffect(() => {
     // Apply dark mode class to body
     document.body.classList.toggle('dark', darkMode);
@@ -69,6 +74,12 @@ function App() {
     if (problems.length > 0) {
       const randomIndex = Math.floor(Math.random() * problems.length);
       const problem = problems[randomIndex];
+=======
+  const loadRandomProblem = (problemsData) => {
+    if (problemsData.length > 0) {
+      const randomIndex = Math.floor(Math.random() * problemsData.length);
+      const problem = problemsData[randomIndex];
+>>>>>>> cd0ae6656c195415faa501dc5e31a8aeaec17adc
       setCurrentProblem(problem);
       setCode('// Your C++ code here');
       setOutput('');
@@ -143,9 +154,34 @@ function App() {
     await supabase.auth.signOut();
   };
 
+<<<<<<< HEAD
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
+=======
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    const newWidth = (e.clientX / window.innerWidth) * 100;
+    setLeftPanelWidth(newWidth);
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  }, [handleMouseMove]);
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+>>>>>>> cd0ae6656c195415faa501dc5e31a8aeaec17adc
 
   return (
     <div className={`flex flex-col h-screen ${darkMode ? 'dark' : ''}`}>
@@ -171,7 +207,7 @@ function App() {
       <main className="flex-grow flex overflow-hidden bg-gray-100 dark:bg-gray-900">
         {user ? (
           <>
-            <div className="w-1/2 flex flex-col p-4">
+            <div style={{ width: `${leftPanelWidth}%` }} className="flex flex-col p-4">
               {currentProblem && (
                 <div className="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
                   <h2 className="text-xl font-semibold mb-2 text-gray-700 dark:text-gray-200">{currentProblem.title}</h2>
@@ -192,10 +228,21 @@ function App() {
                 />
               </div>
             </div>
+<<<<<<< HEAD
             <div className="w-1/2 flex flex-col p-4">
               <div className="flex-grow overflow-auto bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4">
                 <h3 className="font-semibold mb-2 text-gray-800 dark:text-white">Output:</h3>
                 <ReactMarkdown className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+=======
+            <div
+              className="w-1 bg-gray-300 cursor-col-resize"
+              onMouseDown={handleMouseDown}
+            />
+            <div style={{ width: `${100 - leftPanelWidth}%` }} className="flex flex-col p-4">
+              <div className="flex-grow overflow-auto bg-white p-4 rounded-lg shadow mb-4">
+                <h3 className="font-semibold mb-2">Output:</h3>
+                <ReactMarkdown className="text-sm text-gray-700 whitespace-pre-wrap" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+>>>>>>> cd0ae6656c195415faa501dc5e31a8aeaec17adc
                   {output}
                 </ReactMarkdown>
                 {hint && <Alert>{hint}</Alert>}
