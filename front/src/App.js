@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
 import { supabase } from './supabaseClient';
@@ -6,7 +6,7 @@ import Auth from './components/Auth';
 import Papa from 'papaparse';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeSanitize from 'rehype-sanitize'; // Import rehype-sanitize
+import rehypeSanitize from 'rehype-sanitize';
 
 const Alert = ({ children }) => (
   <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert">
@@ -23,6 +23,7 @@ function App() {
   const [hint, setHint] = useState('');
   const [conversationHistory, setConversationHistory] = useState('');
   const [problems, setProblems] = useState([]);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(50); // Initial width percentage
 
   useEffect(() => {
     const fetchProblems = async () => {
@@ -53,10 +54,10 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadRandomProblem = (problems) => {
-    if (problems.length > 0) {
-      const randomIndex = Math.floor(Math.random() * problems.length);
-      const problem = problems[randomIndex];
+  const loadRandomProblem = (problemsData) => {
+    if (problemsData.length > 0) {
+      const randomIndex = Math.floor(Math.random() * problemsData.length);
+      const problem = problemsData[randomIndex];
       setCurrentProblem(problem);
       setCode('// Your C++ code here');
       setOutput('');
@@ -131,6 +132,29 @@ function App() {
     await supabase.auth.signOut();
   };
 
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    const newWidth = (e.clientX / window.innerWidth) * 100;
+    setLeftPanelWidth(newWidth);
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  }, [handleMouseMove]);
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       <header className="bg-white shadow-md p-4 flex justify-between items-center">
@@ -147,7 +171,7 @@ function App() {
       <main className="flex-grow flex overflow-hidden">
         {user ? (
           <>
-            <div className="w-1/2 flex flex-col p-4">
+            <div style={{ width: `${leftPanelWidth}%` }} className="flex flex-col p-4">
               {currentProblem && (
                 <div className="mb-4 p-4 bg-white rounded-lg shadow">
                   <h2 className="text-xl font-semibold mb-2 text-gray-700">{currentProblem.title}</h2>
@@ -167,7 +191,11 @@ function App() {
                 />
               </div>
             </div>
-            <div className="w-1/2 flex flex-col p-4">
+            <div
+              className="w-1 bg-gray-300 cursor-col-resize"
+              onMouseDown={handleMouseDown}
+            />
+            <div style={{ width: `${100 - leftPanelWidth}%` }} className="flex flex-col p-4">
               <div className="flex-grow overflow-auto bg-white p-4 rounded-lg shadow mb-4">
                 <h3 className="font-semibold mb-2">Output:</h3>
                 <ReactMarkdown className="text-sm text-gray-700 whitespace-pre-wrap" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
