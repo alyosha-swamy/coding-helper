@@ -66,11 +66,6 @@ function App() {
     localStorage.setItem('darkMode', darkMode);
   }, [darkMode]);
 
-  const loadRandomProblem = (problems) => {
-    if (problems.length > 0) {
-      const randomIndex = Math.floor(Math.random() * problems.length);
-      const problem = problems[randomIndex];
-=======
   const loadRandomProblem = (problemsData) => {
     if (problemsData.length > 0) {
       const randomIndex = Math.floor(Math.random() * problemsData.length);
@@ -152,6 +147,7 @@ function App() {
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
+
   const handleMouseDown = useCallback((e) => {
     e.preventDefault();
     document.addEventListener('mousemove', handleMouseMove);
@@ -220,18 +216,14 @@ function App() {
                 />
               </div>
             </div>
-            <div className="w-1/2 flex flex-col p-4">
-              <div className="flex-grow overflow-auto bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4">
-                <h3 className="font-semibold mb-2 text-gray-800 dark:text-white">Output:</h3>
-                <ReactMarkdown className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
             <div
               className="w-1 bg-gray-300 cursor-col-resize"
               onMouseDown={handleMouseDown}
             />
             <div style={{ width: `${100 - leftPanelWidth}%` }} className="flex flex-col p-4">
-              <div className="flex-grow overflow-auto bg-white p-4 rounded-lg shadow mb-4">
-                <h3 className="font-semibold mb-2">Output:</h3>
-                <ReactMarkdown className="text-sm text-gray-700 whitespace-pre-wrap" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+              <div className="flex-grow overflow-auto bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4">
+                <h3 className="font-semibold mb-2 text-gray-800 dark:text-white">Output:</h3>
+                <ReactMarkdown className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
                   {output}
                 </ReactMarkdown>
                 {hint && <Alert>{hint}</Alert>}
@@ -271,3 +263,4 @@ function App() {
 }
 
 export default App;
+
