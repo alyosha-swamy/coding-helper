@@ -6,10 +6,10 @@ import Auth from './components/Auth';
 import Papa from 'papaparse';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeSanitize from 'rehype-sanitize'; // Import rehype-sanitize
+import rehypeSanitize from 'rehype-sanitize';
 
 const Alert = ({ children }) => (
-  <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert">
+  <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4 dark:bg-blue-900 dark:text-blue-200" role="alert">
     {children}
   </div>
 );
@@ -23,6 +23,7 @@ function App() {
   const [hint, setHint] = useState('');
   const [conversationHistory, setConversationHistory] = useState('');
   const [problems, setProblems] = useState([]);
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     const fetchProblems = async () => {
@@ -50,8 +51,19 @@ function App() {
       setUser(session?.user ?? null);
     });
 
+    // Load dark mode preference from local storage
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    setDarkMode(savedDarkMode);
+
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    // Apply dark mode class to body
+    document.body.classList.toggle('dark', darkMode);
+    // Save dark mode preference to local storage
+    localStorage.setItem('darkMode', darkMode);
+  }, [darkMode]);
 
   const loadRandomProblem = (problems) => {
     if (problems.length > 0) {
@@ -131,30 +143,42 @@ function App() {
     await supabase.auth.signOut();
   };
 
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
+
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
-      <header className="bg-white shadow-md p-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">Get Cracked and High Using AI at DSA</h1>
-        {user && (
+    <div className={`flex flex-col h-screen ${darkMode ? 'dark' : ''}`}>
+      <header className="bg-white dark:bg-gray-800 shadow-md p-4 flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Get Cracked and High Using AI at DSA</h1>
+        <div className="flex items-center">
           <button
-            onClick={handleSignOut}
-            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 shadow"
+            onClick={toggleDarkMode}
+            className="mr-4 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500 focus:ring-opacity-50 shadow"
           >
-            Sign Out
+            {darkMode ? 'Light Mode' : 'Dark Mode'}
           </button>
-        )}
+          {user && (
+            <button
+              onClick={handleSignOut}
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 shadow"
+            >
+              Sign Out
+            </button>
+          )}
+        </div>
       </header>
-      <main className="flex-grow flex overflow-hidden">
+      <main className="flex-grow flex overflow-hidden bg-gray-100 dark:bg-gray-900">
         {user ? (
           <>
             <div className="w-1/2 flex flex-col p-4">
               {currentProblem && (
-                <div className="mb-4 p-4 bg-white rounded-lg shadow">
-                  <h2 className="text-xl font-semibold mb-2 text-gray-700">{currentProblem.title}</h2>
-                  <ReactMarkdown className="text-gray-600" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+                <div className="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+                  <h2 className="text-xl font-semibold mb-2 text-gray-700 dark:text-gray-200">{currentProblem.title}</h2>
+                  <ReactMarkdown className="text-gray-600 dark:text-gray-300" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
                     {currentProblem.content}
                   </ReactMarkdown>
-                  <p className="text-gray-500 mt-2">Difficulty: {currentProblem.difficulty}</p>
+                  <p className="text-gray-500 dark:text-gray-400 mt-2">Difficulty: {currentProblem.difficulty}</p>
                 </div>
               )}
               <div className="flex-grow overflow-hidden">
@@ -163,14 +187,15 @@ function App() {
                   height="100%"
                   extensions={[cpp()]}
                   onChange={(value) => setCode(value)}
-                  className="border border-gray-300 rounded-lg shadow h-full"
+                  className="border border-gray-300 dark:border-gray-700 rounded-lg shadow h-full"
+                  theme={darkMode ? 'dark' : 'light'}
                 />
               </div>
             </div>
             <div className="w-1/2 flex flex-col p-4">
-              <div className="flex-grow overflow-auto bg-white p-4 rounded-lg shadow mb-4">
-                <h3 className="font-semibold mb-2">Output:</h3>
-                <ReactMarkdown className="text-sm text-gray-700 whitespace-pre-wrap" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+              <div className="flex-grow overflow-auto bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4">
+                <h3 className="font-semibold mb-2 text-gray-800 dark:text-white">Output:</h3>
+                <ReactMarkdown className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
                   {output}
                 </ReactMarkdown>
                 {hint && <Alert>{hint}</Alert>}
@@ -210,4 +235,3 @@ function App() {
 }
 
 export default App;
-
