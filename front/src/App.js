@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
-import { supabase } from './supabaseClient';
-import Auth from './components/Auth';
 import Papa from 'papaparse';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -15,7 +13,6 @@ const Alert = ({ children }) => (
 );
 
 function App() {
-  const [user, setUser] = useState(null);
   const [code, setCode] = useState('// Your C++ code here');
   const [output, setOutput] = useState('');
   const [currentProblem, setCurrentProblem] = useState(null);
@@ -44,19 +41,9 @@ function App() {
 
     fetchProblems();
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
     // Load dark mode preference from local storage
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
     setDarkMode(savedDarkMode);
-
-    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -113,7 +100,7 @@ function App() {
   const requestHint = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/run-code', {
+      const response = await fetch('http://localhost:8000/request-hint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,7 +111,6 @@ function App() {
           expected_output: "Expected output not provided",
           actual_output: output,
           conversation_history: conversationHistory,
-          solution: currentProblem['c++']
         }),
       });
       const data = await response.json();
@@ -138,10 +124,6 @@ function App() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
   };
 
   const toggleDarkMode = () => {
@@ -182,81 +164,67 @@ function App() {
           >
             {darkMode ? 'Light Mode' : 'Dark Mode'}
           </button>
-          {user && (
-            <button
-              onClick={handleSignOut}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 shadow"
-            >
-              Sign Out
-            </button>
-          )}
         </div>
       </header>
       <main className="flex-grow flex overflow-hidden bg-gray-100 dark:bg-gray-900">
-        {user ? (
-          <>
-            <div style={{ width: `${leftPanelWidth}%` }} className="flex flex-col p-4">
-              {currentProblem && (
-                <div className="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
-                  <h2 className="text-xl font-semibold mb-2 text-gray-700 dark:text-gray-200">{currentProblem.title}</h2>
-                  <ReactMarkdown className="text-gray-600 dark:text-gray-300" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-                    {currentProblem.content}
-                  </ReactMarkdown>
-                  <p className="text-gray-500 dark:text-gray-400 mt-2">Difficulty: {currentProblem.difficulty}</p>
-                </div>
-              )}
-              <div className="flex-grow overflow-hidden">
-                <CodeMirror
-                  value={code}
-                  height="100%"
-                  extensions={[cpp()]}
-                  onChange={(value) => setCode(value)}
-                  className="border border-gray-300 dark:border-gray-700 rounded-lg shadow h-full"
-                  theme={darkMode ? 'dark' : 'light'}
-                />
-              </div>
-            </div>
-            <div
-              className="w-1 bg-gray-300 cursor-col-resize"
-              onMouseDown={handleMouseDown}
-            />
-            <div style={{ width: `${100 - leftPanelWidth}%` }} className="flex flex-col p-4">
-              <div className="flex-grow overflow-auto bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4">
-                <h3 className="font-semibold mb-2 text-gray-800 dark:text-white">Output:</h3>
-                <ReactMarkdown className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-                  {output}
+        <>
+          <div style={{ width: `${leftPanelWidth}%` }} className="flex flex-col p-4">
+            {currentProblem && (
+              <div className="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+                <h2 className="text-xl font-semibold mb-2 text-gray-700 dark:text-gray-200">{currentProblem.title}</h2>
+                <ReactMarkdown className="text-gray-600 dark:text-gray-300" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+                  {currentProblem.content}
                 </ReactMarkdown>
-                {hint && <Alert>{hint}</Alert>}
+                <p className="text-gray-500 dark:text-gray-400 mt-2">Difficulty: {currentProblem.difficulty}</p>
               </div>
-              <div className="flex gap-4">
-                <button
-                  onClick={runCode}
-                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 shadow"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Running...' : 'Submit'}
-                </button>
-                <button
-                  onClick={requestHint}
-                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow"
-                  disabled={isLoading}
-                >
-                  Hint
-                </button>
-                <button
-                  onClick={() => loadRandomProblem(problems)}
-                  className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 shadow"
-                >
-                  New Problem
-                </button>
-              </div>
+            )}
+            <div className="flex-1 overflow-hidden min-h-0">
+              <CodeMirror
+                value={code}
+                height="100%"
+                extensions={[cpp()]}
+                onChange={(value) => setCode(value)}
+                className="border border-gray-300 dark:border-gray-700 rounded-lg shadow h-full"
+                theme={darkMode ? 'dark' : 'light'}
+              />
             </div>
-          </>
-        ) : (
-          <div className="w-full flex justify-center items-center">
-            <Auth />
           </div>
-        )}
+          <div
+            className="w-1 bg-gray-300 cursor-col-resize"
+            onMouseDown={handleMouseDown}
+          />
+          <div style={{ width: `${100 - leftPanelWidth}%` }} className="flex flex-col p-4">
+            <div className="flex-grow overflow-auto bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4">
+              <h3 className="font-semibold mb-2 text-gray-800 dark:text-white">Output:</h3>
+              <ReactMarkdown className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap" remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+                {output}
+              </ReactMarkdown>
+              {hint && <Alert>{hint}</Alert>}
+            </div>
+            <div className="flex gap-4">
+              <button
+                onClick={runCode}
+                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 shadow"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Running...' : 'Submit'}
+              </button>
+              <button
+                onClick={requestHint}
+                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow"
+                disabled={isLoading}
+              >
+                Hint
+              </button>
+              <button
+                onClick={() => loadRandomProblem(problems)}
+                className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 shadow"
+              >
+                New Problem
+              </button>
+            </div>
+          </div>
+        </>
       </main>
     </div>
   );
